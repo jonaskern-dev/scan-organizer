@@ -414,8 +414,9 @@ extension ProcessingQueue {
     public func startMonitoring(directory: URL) {
         // Monitor directory for new PDFs
         let monitor = DirectoryMonitor(url: directory) { [weak self] newFiles in
+            guard let self = self else { return }
             Task { @MainActor in
-                self?.addFiles(newFiles.filter { $0.pathExtension.lowercased() == "pdf" })
+                self.addFiles(newFiles.filter { $0.pathExtension.lowercased() == "pdf" })
             }
         }
         monitor.start()
