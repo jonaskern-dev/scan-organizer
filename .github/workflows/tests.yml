@@ -33,14 +33,11 @@ jobs:
       - name: Check Required Files
         run: |
           test -f README.md || (echo "README.md missing" && exit 1)
+          test -f LICENSE || (echo "LICENSE missing" && exit 1)
           test -f docs/SYSTEM_OVERVIEW.md || (echo "SYSTEM_OVERVIEW.md missing" && exit 1)
-          test -f docs/FINDER_INTEGRATION.md || (echo "FINDER_INTEGRATION.md missing" && exit 1)
-          test -f docs/CONTRIBUTING.md || (echo "CONTRIBUTING.md missing" && exit 1)
           echo "All documentation files present"
 
       - name: Check Scripts
         run: |
-          test -f install.sh || (echo "install.sh missing" && exit 1)
           test -f create-app-bundle.sh || (echo "create-app-bundle.sh missing" && exit 1)
-          test -f install-finder-service.sh || (echo "install-finder-service.sh missing" && exit 1)
           echo "All required scripts present"
