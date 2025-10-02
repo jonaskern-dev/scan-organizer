@@ -46,9 +46,9 @@ cat > "$CONTENTS_DIR/Info.plist" << 'EOF'
     <key>CFBundleIdentifier</key>
     <string>com.jonaskern.scanorganizer.dev</string>
     <key>CFBundleName</key>
-    <string>Scan Organizer</string>
+    <string>Scan Organizer (Dev)</string>
     <key>CFBundleDisplayName</key>
-    <string>Scan Organizer</string>
+    <string>Scan Organizer (Dev)</string>
     <key>CFBundleVersion</key>
     <string>1.1.3</string>
     <key>CFBundleShortVersionString</key>
