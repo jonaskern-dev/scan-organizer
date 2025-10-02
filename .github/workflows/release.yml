@@ -94,3 +94,36 @@ jobs:
             ```
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Homebrew Tap
+        env:
+          TAP_TOKEN: ${{ secrets.TAP_UPDATE_TOKEN }}
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          SHA256=${{ steps.sha.outputs.sha256 }}
+
+          echo "Updating Homebrew tap to v$VERSION with SHA256: $SHA256"
+
+          # Clone tap repository
+          git clone https://$TAP_TOKEN@github.com/jonaskern-dev/homebrew-tap.git tap-repo
+          cd tap-repo
+
+          # Configure git
+          git config user.email "action@github.com"
+          git config user.name "GitHub Action"
+
+          # Update cask file
+          CASK_FILE="Casks/scan-organizer.rb"
+          sed -i '' "s/version \".*\"/version \"${VERSION}\"/" "$CASK_FILE"
+          sed -i '' "s/sha256 \".*\"/sha256 \"${SHA256}\"/" "$CASK_FILE"
+
+          # Verify changes
+          echo "Updated cask:"
+          grep -A1 "version\|sha256" "$CASK_FILE" | head -4
+
+          # Commit and push
+          git add "$CASK_FILE"
+          git commit -m "chore: update scan-organizer to v${VERSION}"
+          git push
+
+          echo "Successfully updated scan-organizer cask to version ${VERSION}"
