@@ -38,6 +38,7 @@ jobs:
           mkdir -p "$RESOURCES_DIR"
 
           cp .build/release/ScanOrganizerApp "$MACOS_DIR/ScanOrganizer"
+          cp assets/ScanOrganizer.icns "$RESOURCES_DIR/AppIcon.icns"
 
           # Create proper Info.plist with actual values
           VERSION=${GITHUB_REF#refs/tags/v}
