@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get Version
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Build App Bundle
+        run: |
+          swift build -c release --product ScanOrganizerApp
+
+      - name: Create App Bundle
+        run: |
+          APP_NAME="Scan Organizer.app"
+          APP_DIR="ScanOrganizer.app"
+          CONTENTS_DIR="$APP_DIR/Contents"
+          MACOS_DIR="$CONTENTS_DIR/MacOS"
+          RESOURCES_DIR="$CONTENTS_DIR/Resources"
+
+          mkdir -p "$MACOS_DIR"
+          mkdir -p "$RESOURCES_DIR"
+
+          cp .build/release/ScanOrganizerApp "$MACOS_DIR/ScanOrganizer"
+          cp Sources/App/Info.plist "$CONTENTS_DIR/Info.plist"
+
+      - name: Create ZIP Archive
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          zip -r "ScanOrganizer-${VERSION}.zip" "ScanOrganizer.app"
+
+      - name: Calculate SHA256
+        id: sha
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          SHA256=$(shasum -a 256 "ScanOrganizer-${VERSION}.zip" | cut -d' ' -f1)
+          echo "sha256=$SHA256" >> $GITHUB_OUTPUT
+          echo "SHA256: $SHA256"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ScanOrganizer-${{ steps.version.outputs.version }}.zip
+          body: |
+            ## Scan Organizer v${{ steps.version.outputs.version }}
+
+            ### Installation
+
+            #### Via Homebrew
+            ```bash
+            brew install jonaskern-dev/tap/scan-organizer
+            ```
+
+            #### Manual Installation
+            1. Download ScanOrganizer-${{ steps.version.outputs.version }}.zip
+            2. Unzip and move to Applications folder
+            3. Install Ollama and required models:
+               ```bash
+               ollama pull granite3.2-vision:2b
+               ollama pull granite3.3:2b
+               ```
+
+            ### SHA256
+            ```
+            ${{ steps.sha.outputs.sha256 }}
+            ```
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

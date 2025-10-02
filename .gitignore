@@ -1,0 +1,47 @@
+# Swift
+.build/
+.swiftpm/
+*.xcodeproj
+xcuserdata/
+DerivedData/
+.DS_Store
+
+# Build results
+build/
+*.app
+
+# Package resolved
+Package.resolved
+
+# SPM
+.swiftpm/xcode/
+.swiftpm/config/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# System
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Test files
+test-*.swift
+test-*.pdf
+*.tmp
+
+# macOS
+.Spotlight-V100
+.Trashes
+
+# App Support
+Library/Application Support/ScanOrganizer/queue.txt
+
+# AI Development
+CLAUDE.md

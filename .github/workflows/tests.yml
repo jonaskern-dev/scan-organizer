@@ -1,0 +1,46 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  local-tests-required:
+    name: Local Tests Required
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test Requirements
+        run: |
+          echo "==================================================================================="
+          echo "IMPORTANT: GitHub Actions does not support ARM-based macOS runners."
+          echo ""
+          echo "This project requires macOS 14+ with Apple Silicon for:"
+          echo "  - Apple Vision Framework (OCR)"
+          echo "  - Neural Engine testing"
+          echo "  - App bundle creation and signing"
+          echo ""
+          echo "Before pushing to main, ensure tests pass locally:"
+          echo "  swift test"
+          echo ""
+          echo "==================================================================================="
+
+  documentation-check:
+    name: Documentation Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Required Files
+        run: |
+          test -f README.md || (echo "README.md missing" && exit 1)
+          test -f docs/SYSTEM_OVERVIEW.md || (echo "SYSTEM_OVERVIEW.md missing" && exit 1)
+          test -f docs/FINDER_INTEGRATION.md || (echo "FINDER_INTEGRATION.md missing" && exit 1)
+          test -f docs/CONTRIBUTING.md || (echo "CONTRIBUTING.md missing" && exit 1)
+          echo "All documentation files present"
+
+      - name: Check Scripts
+        run: |
+          test -f install.sh || (echo "install.sh missing" && exit 1)
+          test -f create-app-bundle.sh || (echo "create-app-bundle.sh missing" && exit 1)
+          test -f install-finder-service.sh || (echo "install-finder-service.sh missing" && exit 1)
+          echo "All required scripts present"

@@ -1,0 +1,58 @@
+name: Update Homebrew Cask
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  update-cask:
+    name: Update scan-organizer cask
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Update Homebrew Cask
+      env:
+        GITHUB_TOKEN: ${{ secrets.TAP_UPDATE_TOKEN }}
+      run: |
+        echo "Updating Homebrew cask..."
+
+        # Get version from tag
+        VERSION=${GITHUB_REF#refs/tags/v}
+        echo "Version: $VERSION"
+
+        # Clone homebrew-tap repository
+        git clone https://$GITHUB_TOKEN@github.com/jonaskern-dev/homebrew-tap.git tap-repo
+        cd tap-repo
+
+        # Configure git
+        git config user.email "action@github.com"
+        git config user.name "GitHub Action"
+
+        # Download and calculate SHA256 for app bundle
+        TARBALL_URL="https://github.com/jonaskern-dev/scan-organizer/releases/download/v${VERSION}/ScanOrganizer-${VERSION}.zip"
+        echo "Downloading: $TARBALL_URL"
+        wget -O app.zip "$TARBALL_URL"
+        SHA256=$(sha256sum app.zip | cut -d' ' -f1)
+        echo "New SHA256: $SHA256"
+        rm app.zip
+
+        # Update cask file
+        CASK_FILE="Casks/scan-organizer.rb"
+        echo "Updating $CASK_FILE"
+
+        sed -i "s/version \".*\"/version \"${VERSION}\"/" "$CASK_FILE"
+        sed -i "s|releases/download/v.*/ScanOrganizer-.*\.zip|releases/download/v${VERSION}/ScanOrganizer-${VERSION}.zip|" "$CASK_FILE"
+        sed -i "s/sha256 \".*\"/sha256 \"${SHA256}\"/" "$CASK_FILE"
+
+        # Verify changes
+        echo "Updated cask:"
+        grep -A5 "version\|url\|sha256" "$CASK_FILE"
+
+        # Commit and push
+        git add "$CASK_FILE"
+        git commit -m "chore: update scan-organizer cask to v${VERSION}"
+        git push
+
+        echo "Successfully updated scan-organizer cask to version ${VERSION}"
