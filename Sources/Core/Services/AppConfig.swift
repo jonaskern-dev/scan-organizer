@@ -14,6 +14,8 @@ public class AppConfig: ObservableObject {
         case reminderDelaySeconds = "reminderDelaySeconds"
         case visionPrompt = "visionPrompt"
         case textPrompt = "textPrompt"
+        case brewPath = "brewPath"
+        case ollamaPath = "ollamaPath"
     }
 
     // Published properties for UI binding
@@ -64,6 +66,30 @@ public class AppConfig: ObservableObject {
         didSet {
             UserDefaults.standard.set(textPrompt, forKey: ConfigKey.textPrompt.rawValue)
             UserDefaults.standard.synchronize()
+        }
+    }
+
+    public var brewPath: String {
+        get {
+            if let saved = UserDefaults.standard.string(forKey: ConfigKey.brewPath.rawValue) {
+                return saved
+            }
+            return Self.findBrewPath()
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: ConfigKey.brewPath.rawValue)
+        }
+    }
+
+    public var ollamaPath: String {
+        get {
+            if let saved = UserDefaults.standard.string(forKey: ConfigKey.ollamaPath.rawValue) {
+                return saved
+            }
+            return Self.findOllamaPath()
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: ConfigKey.ollamaPath.rawValue)
         }
     }
 
@@ -520,5 +546,42 @@ public class AppConfig: ObservableObject {
             result = result.replacingOccurrences(of: "{\(key)}", with: value)
         }
         return result
+    }
+
+    // Find brew executable path
+    public static func findBrewPath() -> String {
+        let possiblePaths = [
+            "/opt/homebrew/bin/brew",
+            "/usr/local/bin/brew",
+            "/usr/bin/brew"
+        ]
+
+        for path in possiblePaths {
+            if FileManager.default.fileExists(atPath: path) {
+                return path
+            }
+        }
+
+        // Default fallback
+        return "/usr/local/bin/brew"
+    }
+
+    // Find ollama executable path
+    public static func findOllamaPath() -> String {
+        let possiblePaths = [
+            "/opt/homebrew/bin/ollama",
+            "/usr/local/bin/ollama",
+            "/usr/bin/ollama",
+            "/Applications/Ollama.app/Contents/Resources/ollama"
+        ]
+
+        for path in possiblePaths {
+            if FileManager.default.fileExists(atPath: path) {
+                return path
+            }
+        }
+
+        // Default fallback
+        return "/usr/local/bin/ollama"
     }
 }

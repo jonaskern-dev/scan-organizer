@@ -50,9 +50,9 @@ cat > "$CONTENTS_DIR/Info.plist" << 'EOF'
     <key>CFBundleDisplayName</key>
     <string>Scan Organizer (Dev)</string>
     <key>CFBundleVersion</key>
-    <string>1.1.6</string>
+    <string>1.1.8</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.1.6</string>
+    <string>1.1.8</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleSignature</key>

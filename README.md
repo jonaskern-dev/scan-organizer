@@ -255,4 +255,4 @@ Copyright 2025 Jonas Kern
 
 ## Version
 
-Current version: 1.1.6
+Current version: 1.1.8
