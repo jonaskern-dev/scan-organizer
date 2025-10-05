@@ -22,9 +22,11 @@ Swift-based macOS application for intelligent PDF document processing with OCR, 
 ### User Interface
 - **Split View**: Queue list (1/3) + Processing details (2/3)
 - **Live Logging**: Real-time display of OCR text, AI prompts and responses
-- **Resource Monitor**: CPU, Memory, GPU, and Neural Engine usage
+- **Resource Monitor**: CPU, Memory, GPU, and Apple Neural Engine (ANE) power usage in watts
 - **Expandable Log Entries**: Click to view full AI responses and extracted text
 - **Reminders Integration**: Optional notification creation after processing
+- **Debug Mode**: Optional debug logging with category-specific toggles
+- **Filename Customization**: Configure filename format, separators, and components
 
 ## Architecture
 
@@ -125,6 +127,37 @@ Placeholders available:
 - `{VISION_DESCRIPTION}` - Vision AI analysis result
 - `{FILE_DATE}` - File modification date
 - `{SCHEMA}` - JSON schema for response
+
+#### Filename Format
+Settings → Customize output filename format:
+- **Include Date**: Toggle date in filename (on/off)
+- **Date Format**: Customize date format (e.g., YYYY-MM-DD, DD.MM.YYYY, YYYY/MM/DD)
+- **Part Separator**: Character between major parts like date, title, components (default: `_`)
+- **Internal Separator**: Character within components like EUR-123-45 (default: `-`)
+- **Include Components**: Toggle extracted components in filename (on/off)
+
+Example formats:
+- `2025-10-05_Invoice_CompanyName_EUR12345.pdf` (default)
+- `05.10.2025-Invoice-CompanyName.pdf` (custom: DD.MM.YYYY, `-`, no components)
+- `Invoice_CompanyName.pdf` (no date, no components)
+
+#### Debug Mode
+Settings → Enable debug logging:
+- **Master Toggle**: Enable/disable all debug output
+- **Category Toggles**: Individual toggles for:
+  - Resource Monitor (CPU, Memory, GPU, ANE)
+  - PDF Processor
+  - AI Classifier
+  - OCR Service
+  - File Organizer
+  - Notification Service
+
+#### Resource Monitoring
+Real-time system resource monitoring:
+- **CPU Usage**: Total, E-cores (Efficiency), P-cores (Performance)
+- **Memory Usage**: Used/Total in GB
+- **GPU Usage**: Percentage (0-100%)
+- **ANE Power**: Apple Neural Engine power consumption in watts (0.00 W)
 
 #### Output Directory
 Default: `~/Documents/ScanOrganizer/`
@@ -227,4 +260,4 @@ Copyright 2025 Jonas Kern
 
 ## Version
 
-Current version: 1.1.11
+Current version: 1.2.0
