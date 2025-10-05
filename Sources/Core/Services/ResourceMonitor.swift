@@ -71,6 +71,8 @@ public class ResourceMonitor: ObservableObject {
     public func startMonitoring(interval: TimeInterval = 1.0) {
         stopMonitoring()
 
+        DebugLogger.log("Starting resource monitoring with interval: \(interval)s", category: .resourceMonitor)
+
         // Initial update
         updateMetrics()
 
@@ -81,6 +83,7 @@ public class ResourceMonitor: ObservableObject {
     }
 
     public func stopMonitoring() {
+        DebugLogger.log("Stopping resource monitoring", category: .resourceMonitor)
         timer?.invalidate()
         timer = nil
     }
@@ -90,6 +93,8 @@ public class ResourceMonitor: ObservableObject {
         let memory = getMemoryUsage()
         let gpu = getGPUUsage()
         let anePower = getANEPower()
+
+        DebugLogger.debug("CPU: \(String(format: "%.1f", cpu.total))% (E: \(String(format: "%.1f", cpu.efficiency))%, P: \(String(format: "%.1f", cpu.performance))%), RAM: \(String(format: "%.1f", memory.used))/\(String(format: "%.1f", memory.total))GB, GPU: \(String(format: "%.1f", gpu))%, ANE: \(String(format: "%.2f", anePower))W", category: .resourceMonitor)
 
         DispatchQueue.main.async {
             self.metrics = ResourceMetrics(
@@ -258,6 +263,7 @@ public class ResourceMonitor: ObservableObject {
     #if os(macOS)
     private func setupANEMonitoring() {
         guard let channels = IOReportCopyChannelsInGroup("Energy Model" as CFString, nil, 0, 0, 0) else {
+            DebugLogger.warning("Failed to get IOReport channels for Energy Model", category: .resourceMonitor)
             return
         }
 
@@ -268,6 +274,9 @@ public class ResourceMonitor: ObservableObject {
             // Take initial sample
             previousAneSample = IOReportCreateSamples(aneSubscription!, channels as! CFMutableDictionary, nil)
             lastANEUpdateTime = Date()
+            DebugLogger.log("ANE monitoring initialized successfully", category: .resourceMonitor)
+        } else {
+            DebugLogger.warning("Failed to create IOReport subscription", category: .resourceMonitor)
         }
     }
     #endif
@@ -333,6 +342,8 @@ public class ResourceMonitor: ObservableObject {
                     // IOReport returns microwatts, convert to watts
                     let powerWatts = Double(energyDelta) / 1000.0
                     anePowerWatts += powerWatts
+
+                    DebugLogger.debug("ANE \(channelName): \(energyDelta) µW = \(String(format: "%.2f", powerWatts)) W", category: .resourceMonitor)
                 }
             }
         }

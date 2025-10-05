@@ -34,12 +34,16 @@ public class PDFProcessor {
     public func process(pdfURL: URL) async throws -> ProcessingResult {
         let startTime = Date()
 
+        DebugLogger.log("Starting PDF processing: \(pdfURL.lastPathComponent)", category: .pdfProcessor)
+
         // Validate PDF
         guard pdfURL.pathExtension.lowercased() == "pdf" else {
+            DebugLogger.error("Invalid file type: \(pdfURL.pathExtension)", category: .pdfProcessor)
             throw ProcessingError.invalidFileType
         }
 
         guard FileManager.default.fileExists(atPath: pdfURL.path) else {
+            DebugLogger.error("File not found: \(pdfURL.path)", category: .pdfProcessor)
             throw ProcessingError.fileNotFound
         }
 
@@ -47,6 +51,8 @@ public class PDFProcessor {
         delegate?.addLogEntry("=== PDF PROCESSING STARTED ===")
         delegate?.addLogEntry("File: \(pdfURL.lastPathComponent)")
         delegate?.addLogEntry("Size: \(getFileSize(url: pdfURL))")
+
+        DebugLogger.debug("PDF validated, size: \(getFileSize(url: pdfURL))", category: .pdfProcessor)
 
         // Create document
         var document = Document(originalPath: pdfURL)

@@ -585,6 +585,42 @@ struct ConfigView: View {
                 }
 
 
+                // Debug Settings
+                Section {
+                    Toggle("Enable Debug Mode", isOn: $config.debugEnabled)
+                        .help("Enable debug logging to console")
+
+                    if config.debugEnabled {
+                        Toggle("Resource Monitor", isOn: $config.debugResourceMonitor)
+                            .help("Show CPU, Memory, GPU, ANE debug logs")
+                            .padding(.leading, 20)
+
+                        Toggle("PDF Processor", isOn: $config.debugPDFProcessor)
+                            .help("Show PDF processing debug logs")
+                            .padding(.leading, 20)
+
+                        Toggle("AI Classifier", isOn: $config.debugAIClassifier)
+                            .help("Show AI classification debug logs")
+                            .padding(.leading, 20)
+
+                        Toggle("OCR Service", isOn: $config.debugOCRService)
+                            .help("Show OCR extraction debug logs")
+                            .padding(.leading, 20)
+
+                        Toggle("File Organizer", isOn: $config.debugFileOrganizer)
+                            .help("Show file organization debug logs")
+                            .padding(.leading, 20)
+
+                        Toggle("Notification Service", isOn: $config.debugNotificationService)
+                            .help("Show notification debug logs")
+                            .padding(.leading, 20)
+                    }
+                } header: {
+                    Label("Debug", systemImage: "ladybug")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                }
+
                 // Status Section
                 Section {
                     HStack {
