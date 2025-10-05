@@ -261,11 +261,10 @@ public class ResourceMonitor: ObservableObject {
 
         print("DEBUG: Found \(reportChannels.count) report channels")
 
-        // Print first 30 channel names to see what we have
-        for (index, channel) in reportChannels.prefix(30).enumerated() {
-            if let channelName = channel["ChannelName"] as? String {
-                print("DEBUG: [\(index)] \(channelName)")
-            }
+        // Print first 3 complete channels to see structure
+        for (index, channel) in reportChannels.prefix(3).enumerated() {
+            print("DEBUG: [\(index)] Keys: \(channel.keys)")
+            print("DEBUG: [\(index)] Full channel: \(channel)")
         }
 
         for channel in reportChannels {
