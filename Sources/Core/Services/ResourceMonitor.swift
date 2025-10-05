@@ -253,12 +253,17 @@ public class ResourceMonitor: ObservableObject {
 
         var foundANE = false
 
-        // Iterate through all channels
+        // Iterate through all channels and print them
         for (key, value) in channels {
-            guard let keyStr = key as? String else { continue }
+            if let keyStr = key as? String {
+                print("DEBUG: Channel key: '\(keyStr)'")
+            } else {
+                print("DEBUG: Channel key (non-string): \(key)")
+            }
 
             // Check if this is an ANE-related channel
-            if keyStr.contains("ANE") || keyStr.contains("ane") {
+            if let keyStr = key as? String,
+               (keyStr.contains("ANE") || keyStr.contains("ane") || keyStr.contains("Neural")) {
                 foundANE = true
                 print("DEBUG: Found ANE channel: \(keyStr)")
                 print("DEBUG: Channel data: \(value)")
