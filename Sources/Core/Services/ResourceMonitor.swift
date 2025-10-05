@@ -6,14 +6,17 @@ import IOKit
 import IOKit.ps
 
 // IOReport private framework for power metrics (used by powermetrics, macmon, asitop)
-@_silgen_name("IOReportCopyAllChannels")
-func IOReportCopyAllChannels(_: UInt64, _: UInt64) -> CFDictionary?
+@_silgen_name("IOReportCopyChannelsInGroup")
+func IOReportCopyChannelsInGroup(_: CFString?, _: CFString?, _: UInt64, _: UInt64, _: UInt64) -> CFDictionary?
 
 @_silgen_name("IOReportCreateSubscription")
 func IOReportCreateSubscription(_: UnsafeRawPointer?, _: CFMutableDictionary, _: UnsafeMutablePointer<CFMutableDictionary?>?, _: UInt64, _: CFTypeRef?) -> UnsafeRawPointer?
 
 @_silgen_name("IOReportCreateSamples")
 func IOReportCreateSamples(_: UnsafeRawPointer, _: CFMutableDictionary, _: CFTypeRef?) -> CFDictionary?
+
+@_silgen_name("IOReportCreateSamplesDelta")
+func IOReportCreateSamplesDelta(_: CFDictionary, _: CFDictionary, _: CFTypeRef?) -> CFDictionary?
 
 @_silgen_name("IOReportChannelGetChannelName")
 func IOReportChannelGetChannelName(_: CFDictionary) -> CFString?
@@ -240,43 +243,42 @@ public class ResourceMonitor: ObservableObject {
     private func getANEUsage() -> Double {
         #if os(macOS)
         // Use IOReport framework to get ANE power consumption
-        // This is the same method used by powermetrics, macmon, and asitop
+        // Query "Energy Model" group which contains ANE power channels
 
-        guard let channelsDict = IOReportCopyAllChannels(0, 0) else {
-            print("DEBUG: IOReportCopyAllChannels returned nil")
+        guard let channels = IOReportCopyChannelsInGroup("Energy Model" as CFString, nil, 0, 0, 0) else {
+            print("DEBUG: IOReportCopyChannelsInGroup returned nil")
             return 0
         }
 
-        // Convert to NSDictionary for easier iteration
-        let channels = channelsDict as NSDictionary
-        print("DEBUG: Got \(channels.count) IOReport channels")
+        let channelsDict = channels as NSDictionary
+        print("DEBUG: Got \(channelsDict.count) energy channels")
 
-        var foundANE = false
+        // Look for ANE in the IOReportChannels array
+        guard let reportChannels = channelsDict["IOReportChannels"] as? [[String: Any]] else {
+            print("DEBUG: No IOReportChannels array found")
+            return 0
+        }
 
-        // Iterate through all channels and print them
-        for (key, value) in channels {
-            if let keyStr = key as? String {
-                print("DEBUG: Channel key: '\(keyStr)'")
-            } else {
-                print("DEBUG: Channel key (non-string): \(key)")
-            }
+        print("DEBUG: Found \(reportChannels.count) report channels")
 
-            // Check if this is an ANE-related channel
-            if let keyStr = key as? String,
-               (keyStr.contains("ANE") || keyStr.contains("ane") || keyStr.contains("Neural")) {
-                foundANE = true
-                print("DEBUG: Found ANE channel: \(keyStr)")
-                print("DEBUG: Channel data: \(value)")
+        for channel in reportChannels {
+            if let channelName = channel["ChannelName"] as? String {
+                print("DEBUG: Channel: \(channelName)")
 
-                // Return 100% to indicate ANE is present/active
-                return 100.0
+                // Check for ANE channels (ANE0, ANE1, etc.)
+                if channelName.starts(with: "ANE") {
+                    print("DEBUG: ✓ Found ANE channel: \(channelName)")
+
+                    // Check if there's any energy value
+                    if let residencies = channel["Residencies"] as? [[String: Any]], !residencies.isEmpty {
+                        print("DEBUG: ANE has residency data - ANE is ACTIVE")
+                        return 100.0
+                    }
+                }
             }
         }
 
-        if !foundANE {
-            print("DEBUG: No ANE channels found in IOReport")
-        }
-
+        print("DEBUG: No active ANE channels found")
         return 0
         #else
         return 0
