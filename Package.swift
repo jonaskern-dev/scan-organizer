@@ -9,10 +9,6 @@ let package = Package(
     ],
     products: [
         .executable(
-            name: "scan-organizer",
-            targets: ["ScanOrganizerCLI"]
-        ),
-        .executable(
             name: "ScanOrganizerApp",
             targets: ["ScanOrganizerApp"]
         ),
@@ -25,28 +21,13 @@ let package = Package(
             targets: ["ScanOrganizerAppIntents"]
         )
     ],
-    dependencies: [
-        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.3.0"),
-        .package(url: "https://github.com/stephencelis/SQLite.swift", from: "0.14.0")
-    ],
+    dependencies: [],
     targets: [
         // Core business logic
         .target(
             name: "ScanOrganizerCore",
-            dependencies: [
-                .product(name: "SQLite", package: "SQLite.swift")
-            ],
+            dependencies: [],
             path: "Sources/Core"
-        ),
-
-        // CLI executable
-        .executableTarget(
-            name: "ScanOrganizerCLI",
-            dependencies: [
-                "ScanOrganizerCore",
-                .product(name: "ArgumentParser", package: "swift-argument-parser")
-            ],
-            path: "Sources/CLI"
         ),
 
         // GUI App executable

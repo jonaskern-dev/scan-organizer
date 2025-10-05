@@ -38,22 +38,10 @@ public class FirstRunSetup {
                 return true
             }
 
-            // API not reachable - check if ollama binary exists anywhere
+            // API not reachable - check if ollama binary exists
             // This handles the case where Ollama is installed but not running
-            let possiblePaths = [
-                "/usr/local/bin/ollama",
-                "/opt/homebrew/bin/ollama",
-                "/usr/bin/ollama",
-                "/Applications/Ollama.app/Contents/Resources/ollama"
-            ]
-
-            for path in possiblePaths {
-                if FileManager.default.fileExists(atPath: path) {
-                    return true  // Installed but service not running
-                }
-            }
-
-            return false
+            let ollamaPath = AppConfig.findOllamaPath()
+            return FileManager.default.fileExists(atPath: ollamaPath)
         } catch {
             return false
         }
@@ -247,8 +235,9 @@ public class FirstRunSetup {
     }
 
     private func ensureOllamaServiceRunning() async {
+        let brewPath = AppConfig.findBrewPath()
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/local/bin/brew")
+        process.executableURL = URL(fileURLWithPath: brewPath)
         process.arguments = ["services", "start", "ollama"]
 
         do {
@@ -344,8 +333,9 @@ public class FirstRunSetup {
     }
 
     private func downloadModel(_ model: String) async {
+        let ollamaPath = AppConfig.findOllamaPath()
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/local/bin/ollama")
+        process.executableURL = URL(fileURLWithPath: ollamaPath)
         process.arguments = ["pull", model]
 
         do {

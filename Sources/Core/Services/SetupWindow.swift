@@ -315,8 +315,9 @@ class SetupViewModel: ObservableObject {
         statusMessage = "Installing Ollama via Homebrew..."
 
         let success = await Task.detached {
+            let brewPath = AppConfig.findBrewPath()
             let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/usr/local/bin/brew")
+            process.executableURL = URL(fileURLWithPath: brewPath)
             process.arguments = ["install", "ollama"]
 
             do {
@@ -345,8 +346,9 @@ class SetupViewModel: ObservableObject {
         statusMessage = "Starting Ollama service..."
 
         await Task.detached {
+            let brewPath = AppConfig.findBrewPath()
             let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/usr/local/bin/brew")
+            process.executableURL = URL(fileURLWithPath: brewPath)
             process.arguments = ["services", "start", "ollama"]
 
             do {
@@ -502,16 +504,7 @@ class SetupViewModel: ObservableObject {
     }
 
     private func downloadModel(_ model: String, progressStart: Double, progressEnd: Double) async -> Bool {
-        // Find ollama path
-        let possiblePaths = [
-            "/usr/local/bin/ollama",
-            "/opt/homebrew/bin/ollama",
-            "/usr/bin/ollama"
-        ]
-
-        guard let ollamaPath = possiblePaths.first(where: { FileManager.default.fileExists(atPath: $0) }) else {
-            return false
-        }
+        let ollamaPath = AppConfig.findOllamaPath()
 
         return await Task.detached {
             let process = Process()
@@ -616,15 +609,7 @@ class SetupViewModel: ObservableObject {
     }
 
     private func removeModel(_ model: String) async {
-        let possiblePaths = [
-            "/usr/local/bin/ollama",
-            "/opt/homebrew/bin/ollama",
-            "/usr/bin/ollama"
-        ]
-
-        guard let ollamaPath = possiblePaths.first(where: { FileManager.default.fileExists(atPath: $0) }) else {
-            return
-        }
+        let ollamaPath = AppConfig.findOllamaPath()
 
         await Task.detached {
             let process = Process()
@@ -642,8 +627,9 @@ class SetupViewModel: ObservableObject {
 
     private func restartOllamaService() async {
         await Task.detached {
+            let brewPath = AppConfig.findBrewPath()
             let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/usr/local/bin/brew")
+            process.executableURL = URL(fileURLWithPath: brewPath)
             process.arguments = ["services", "restart", "ollama"]
 
             do {
