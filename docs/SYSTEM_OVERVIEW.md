@@ -111,15 +111,21 @@ graph TB
 - `FileOrganizer`: File organization and renaming
 
 ### Queue System
-- `ProcessingQueue`: Queue management with continuous processing
+- `ProcessingQueue`: In-memory queue management with continuous processing
 - `QueueItem`: Observable object with status and progress
 - `DirectoryMonitor`: Monitors directory for new PDFs
+
+### Configuration & Storage
+- `AppConfig`: Singleton using UserDefaults for persistent settings
+- `FirstRunSetup`: Initial setup wizard for Ollama and models
+- `NotificationService`: macOS notification and Reminders integration
 
 ### GUI Components
 - `ContentView`: Main split view with queue and details
 - `QueueListView`: List with drag & drop support
 - `ItemDetailView`: Shows processing details and log
 - `QueueItemRow`: Rows with status animation
+- `ResourceBarView`: System resource monitoring display
 
 ## Status Flow
 ```
