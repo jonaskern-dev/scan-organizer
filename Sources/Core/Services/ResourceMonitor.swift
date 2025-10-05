@@ -261,29 +261,23 @@ public class ResourceMonitor: ObservableObject {
 
         print("DEBUG: Found \(reportChannels.count) report channels")
 
-        // Print first 3 complete channels to see structure
-        for (index, channel) in reportChannels.prefix(3).enumerated() {
-            print("DEBUG: [\(index)] Keys: \(channel.keys)")
-            print("DEBUG: [\(index)] Full channel: \(channel)")
-        }
-
+        // Iterate through channels and check LegendChannel array
         for channel in reportChannels {
-            if let channelName = channel["ChannelName"] as? String {
-                // Check for ANE channels (ANE0, ANE1, etc.)
+            // Channel name is in LegendChannel array at index 2
+            if let legendChannel = channel["LegendChannel"] as? NSArray,
+               legendChannel.count > 2,
+               let channelName = legendChannel[2] as? String {
+
+                // Check for ANE channels
                 if channelName.starts(with: "ANE") {
                     print("DEBUG: ✓ Found ANE channel: \(channelName)")
-                    print("DEBUG: Channel data: \(channel)")
-
-                    // Check if there's any energy value
-                    if let residencies = channel["Residencies"] as? [[String: Any]], !residencies.isEmpty {
-                        print("DEBUG: ANE has residency data - ANE is ACTIVE")
-                        return 100.0
-                    }
+                    // ANE channel exists, return 100% to indicate active
+                    return 100.0
                 }
             }
         }
 
-        print("DEBUG: No active ANE channels found")
+        print("DEBUG: No ANE channels found in \(reportChannels.count) energy channels")
         return 0
         #else
         return 0
