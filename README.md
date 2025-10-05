@@ -50,7 +50,7 @@ Processing Complete
 - **Language**: Swift 5.9+
 - **Frameworks**: SwiftUI, PDFKit, Vision, AppKit
 - **AI Models**: Ollama (granite3.2-vision:2b, granite3.3:2b)
-- **Storage**: Core Data (via SQLite.swift)
+- **Storage**: UserDefaults for settings, in-memory queue management
 - **Minimum macOS**: 14.0 (Sonoma)
 
 ## Installation
@@ -91,18 +91,6 @@ ollama pull granite3.3:2b
 git clone https://github.com/jonaskern-dev/scan-organizer.git
 cd scan-organizer
 
-# Run installation script
-./install.sh
-```
-
-This will:
-- Check Ollama installation and models
-- Build CLI tool and install to `~/.local/bin`
-- Create default directories
-- Set up PATH if needed
-
-#### GUI App Installation
-```bash
 # Build and install app bundle
 ./create-app-bundle.sh
 ```
@@ -123,21 +111,6 @@ open ~/Applications/Scan\ Organizer.app
 2. **Finder Service**: Right-click PDF → Services → "Process with Scan Organizer"
 3. **Command + O**: Use file picker to select PDFs
 4. **URL Scheme**: `open "scanorganizer://process?files=/path/to/file.pdf"`
-
-### CLI Tool
-```bash
-# Process single PDF
-scan-organizer process document.pdf
-
-# Process multiple files
-scan-organizer process file1.pdf file2.pdf file3.pdf
-
-# Watch directory for new PDFs
-scan-organizer watch ~/Downloads/ScannerInbox
-
-# Show help
-scan-organizer --help
-```
 
 ### Configuration
 
@@ -176,7 +149,6 @@ scan-organizer/
 ├── Sources/
 │   ├── App/              # GUI application (SwiftUI)
 │   ├── AppIntents/       # Finder Quick Action integration
-│   ├── CLI/              # Command-line interface
 │   └── Core/             # Shared business logic
 │       ├── Models/       # Domain models
 │       ├── Queue/        # Processing queue system
@@ -184,7 +156,7 @@ scan-organizer/
 │       └── Extensions/   # Swift extensions
 ├── Tests/                # Unit tests
 ├── Package.swift         # Swift Package Manager config
-└── Scripts/              # Build and installation scripts
+└── scripts/              # Build and installation scripts
 ```
 
 ### Building
