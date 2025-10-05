@@ -2,6 +2,8 @@
 
 Swift-based macOS application for intelligent PDF document processing with OCR, AI-powered classification, and automatic organization.
 
+![Main Window](docs/images/main-window.png)
+
 ## Features
 
 ### Core Functionality
@@ -19,6 +21,9 @@ Swift-based macOS application for intelligent PDF document processing with OCR, 
 - **URL Scheme**: `scanorganizer://process?files=/path/to/file.pdf`
 - **Queue File**: Monitor `~/Library/Application Support/ScanOrganizer/queue.txt`
 
+![Finder Service](docs/images/finder-service.png)
+![Drag & Drop](docs/images/drag-drop.png)
+
 ### User Interface
 - **Split View**: Queue list (1/3) + Processing details (2/3)
 - **Live Logging**: Real-time display of OCR text, AI prompts and responses
@@ -27,6 +32,10 @@ Swift-based macOS application for intelligent PDF document processing with OCR, 
 - **Reminders Integration**: Optional notification creation after processing
 - **Debug Mode**: Optional debug logging with category-specific toggles
 - **Filename Customization**: Configure filename format, separators, and components
+
+![Queue List](docs/images/queue-list.png)
+![Processing Log](docs/images/processing-log.png)
+![Resource Monitor](docs/images/resource-monitor.png)
 
 ## Architecture
 
@@ -76,6 +85,8 @@ The Homebrew cask will:
 - Install app to `/Applications/Scan Organizer.app`
 - Set up Finder Quick Action integration
 - Configure URL scheme handler
+
+![Setup Welcome](docs/images/setup-welcome.png)
 
 ### Manual Installation
 
@@ -128,6 +139,10 @@ Placeholders available:
 - `{FILE_DATE}` - File modification date
 - `{SCHEMA}` - JSON schema for response
 
+![Settings - Notifications](docs/images/settings-notifications.png)
+![Settings - Ollama Models](docs/images/settings-ollama-models.png)
+![Settings - AI Prompts](docs/images/settings-ai-prompts.png)
+
 #### Filename Format
 Settings → Customize output filename format:
 - **Include Date**: Toggle date in filename (on/off)
@@ -141,6 +156,8 @@ Example formats:
 - `05.10.2025-Invoice-CompanyName.pdf` (custom: DD.MM.YYYY, `-`, no components)
 - `Invoice_CompanyName.pdf` (no date, no components)
 
+![Settings - Filename Format](docs/images/settings-filename.png)
+
 #### Debug Mode
 Settings → Enable debug logging:
 - **Master Toggle**: Enable/disable all debug output
@@ -151,6 +168,8 @@ Settings → Enable debug logging:
   - OCR Service
   - File Organizer
   - Notification Service
+
+![Settings - Debug Mode](docs/images/settings-debug.png)
 
 #### Resource Monitoring
 Real-time system resource monitoring:
