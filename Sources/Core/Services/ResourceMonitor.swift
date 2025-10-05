@@ -51,7 +51,18 @@ public class ResourceMonitor: ObservableObject {
     private var timer: Timer?
     private var previousCPUInfo: host_cpu_load_info?
 
-    public init() {}
+    #if os(macOS)
+    private var aneSubscription: UnsafeRawPointer?
+    private var previousAneSample: CFDictionary?
+    private var lastANEUpdateTime: Date?
+    private let aneMaxPower: Double = 8.0 // ANE max power ~8W
+    #endif
+
+    public init() {
+        #if os(macOS)
+        setupANEMonitoring()
+        #endif
+    }
 
     public func startMonitoring(interval: TimeInterval = 1.0) {
         stopMonitoring()
@@ -240,45 +251,81 @@ public class ResourceMonitor: ObservableObject {
         return 0
     }
 
+    #if os(macOS)
+    private func setupANEMonitoring() {
+        guard let channels = IOReportCopyChannelsInGroup("Energy Model" as CFString, nil, 0, 0, 0) else {
+            return
+        }
+
+        var channelsOut: CFMutableDictionary?
+        aneSubscription = IOReportCreateSubscription(nil, channels as CFMutableDictionary, &channelsOut, 0, nil)
+
+        if aneSubscription != nil {
+            // Take initial sample
+            previousAneSample = IOReportCreateSamples(aneSubscription!, channels as CFMutableDictionary, nil)
+            lastANEUpdateTime = Date()
+        }
+    }
+    #endif
+
     private func getANEUsage() -> Double {
         #if os(macOS)
-        // Use IOReport framework to get ANE power consumption
-        // Query "Energy Model" group which contains ANE power channels
+        guard let subscription = aneSubscription else {
+            return 0
+        }
 
         guard let channels = IOReportCopyChannelsInGroup("Energy Model" as CFString, nil, 0, 0, 0) else {
-            print("DEBUG: IOReportCopyChannelsInGroup returned nil")
             return 0
         }
 
-        let channelsDict = channels as NSDictionary
-        print("DEBUG: Got \(channelsDict.count) energy channels")
-
-        // Look for ANE in the IOReportChannels array
-        guard let reportChannels = channelsDict["IOReportChannels"] as? [[String: Any]] else {
-            print("DEBUG: No IOReportChannels array found")
+        // Create new sample
+        guard let newSample = IOReportCreateSamples(subscription, channels as CFMutableDictionary, nil) else {
             return 0
         }
 
-        print("DEBUG: Found \(reportChannels.count) report channels")
+        // Calculate delta if we have previous sample
+        var anePowerWatts: Double = 0.0
 
-        // Iterate through channels and check LegendChannel array
-        for channel in reportChannels {
-            // Channel name is in LegendChannel array at index 2
-            if let legendChannel = channel["LegendChannel"] as? NSArray,
-               legendChannel.count > 2,
-               let channelName = legendChannel[2] as? String {
+        if let prevSample = previousAneSample,
+           let lastTime = lastANEUpdateTime {
+            let deltaTime = Date().timeIntervalSince(lastTime)
 
-                // Check for ANE channels
-                if channelName.starts(with: "ANE") {
-                    print("DEBUG: ✓ Found ANE channel: \(channelName)")
-                    // ANE channel exists, return 100% to indicate active
-                    return 100.0
+            guard deltaTime > 0, let delta = IOReportCreateSamplesDelta(prevSample, newSample, nil) else {
+                previousAneSample = newSample
+                lastANEUpdateTime = Date()
+                return 0
+            }
+
+            // Parse delta to find ANE energy
+            if let deltaDict = delta as? NSDictionary,
+               let channels = deltaDict["IOReportChannels"] as? [[String: Any]] {
+
+                for channel in channels {
+                    if let legendChannel = channel["LegendChannel"] as? NSArray,
+                       legendChannel.count > 2,
+                       let channelName = legendChannel[2] as? String,
+                       channelName.starts(with: "ANE") {
+
+                        // Get energy value from channel
+                        if let value = IOReportSimpleGetIntegerValue(channel as CFDictionary, 0) as? Int64, value > 0 {
+                            // Convert energy to watts (value is in nanojoules)
+                            let energyNanojoules = Double(value)
+                            let energyJoules = energyNanojoules / 1_000_000_000.0
+                            anePowerWatts = energyJoules / deltaTime
+                            break
+                        }
+                    }
                 }
             }
         }
 
-        print("DEBUG: No ANE channels found in \(reportChannels.count) energy channels")
-        return 0
+        // Store current sample for next iteration
+        previousAneSample = newSample
+        lastANEUpdateTime = Date()
+
+        // Convert watts to percentage (0-100%) based on max power
+        let percentage = min((anePowerWatts / aneMaxPower) * 100.0, 100.0)
+        return percentage
         #else
         return 0
         #endif
