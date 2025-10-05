@@ -23,6 +23,9 @@ func IOReportChannelGetChannelName(_: CFDictionary) -> CFString?
 
 @_silgen_name("IOReportSimpleGetIntegerValue")
 func IOReportSimpleGetIntegerValue(_: CFDictionary, _: Int32) -> Int64
+
+@_silgen_name("IOReportChannelGetUnitLabel")
+func IOReportChannelGetUnitLabel(_: CFDictionary) -> CFString?
 #endif
 
 public struct ResourceMetrics {
@@ -32,7 +35,7 @@ public struct ResourceMetrics {
     public let memoryUsed: Double  // in GB
     public let memoryTotal: Double  // in GB
     public let gpuUsage: Double  // 0-100%
-    public let aneUsage: Double  // Apple Neural Engine 0-100%
+    public let anePower: Double  // Apple Neural Engine power in watts
     public let timestamp: Date
 }
 
@@ -44,7 +47,7 @@ public class ResourceMonitor: ObservableObject {
         memoryUsed: 0,
         memoryTotal: 0,
         gpuUsage: 0,
-        aneUsage: 0,
+        anePower: 0,
         timestamp: Date()
     )
 
@@ -54,6 +57,7 @@ public class ResourceMonitor: ObservableObject {
     #if os(macOS)
     private var aneSubscription: UnsafeRawPointer?
     private var previousAneSample: CFDictionary?
+    private var previousANEEnergy: Int64 = 0  // Store previous energy value for delta
     private var lastANEUpdateTime: Date?
     private let aneMaxPower: Double = 8.0 // ANE max power ~8W
     #endif
@@ -85,7 +89,7 @@ public class ResourceMonitor: ObservableObject {
         let cpu = getCPUUsage()
         let memory = getMemoryUsage()
         let gpu = getGPUUsage()
-        let ane = getANEUsage()
+        let anePower = getANEPower()
 
         DispatchQueue.main.async {
             self.metrics = ResourceMetrics(
@@ -95,7 +99,7 @@ public class ResourceMonitor: ObservableObject {
                 memoryUsed: memory.used,
                 memoryTotal: memory.total,
                 gpuUsage: gpu,
-                aneUsage: ane,
+                anePower: anePower,
                 timestamp: Date()
             )
         }
@@ -258,17 +262,17 @@ public class ResourceMonitor: ObservableObject {
         }
 
         var channelsOut: CFMutableDictionary?
-        aneSubscription = IOReportCreateSubscription(nil, channels as CFMutableDictionary, &channelsOut, 0, nil)
+        aneSubscription = IOReportCreateSubscription(nil, channels as! CFMutableDictionary, &channelsOut, 0, nil)
 
         if aneSubscription != nil {
             // Take initial sample
-            previousAneSample = IOReportCreateSamples(aneSubscription!, channels as CFMutableDictionary, nil)
+            previousAneSample = IOReportCreateSamples(aneSubscription!, channels as! CFMutableDictionary, nil)
             lastANEUpdateTime = Date()
         }
     }
     #endif
 
-    private func getANEUsage() -> Double {
+    private func getANEPower() -> Double {
         #if os(macOS)
         guard let subscription = aneSubscription else {
             return 0
@@ -278,54 +282,66 @@ public class ResourceMonitor: ObservableObject {
             return 0
         }
 
-        // Create new sample
-        guard let newSample = IOReportCreateSamples(subscription, channels as CFMutableDictionary, nil) else {
+        // Create current sample
+        guard let currentSample = IOReportCreateSamples(subscription, channels as! CFMutableDictionary, nil) else {
             return 0
         }
 
-        // Calculate delta if we have previous sample
         var anePowerWatts: Double = 0.0
 
+        // Need previous sample to calculate delta
         if let prevSample = previousAneSample,
            let lastTime = lastANEUpdateTime {
+
             let deltaTime = Date().timeIntervalSince(lastTime)
 
-            guard deltaTime > 0, let delta = IOReportCreateSamplesDelta(prevSample, newSample, nil) else {
-                previousAneSample = newSample
+            guard deltaTime > 0 else {
+                previousAneSample = currentSample
                 lastANEUpdateTime = Date()
                 return 0
             }
 
-            // Parse delta to find ANE energy
-            if let deltaDict = delta as? NSDictionary,
-               let channels = deltaDict["IOReportChannels"] as? [[String: Any]] {
+            // Create delta sample - this automatically calculates energy differences
+            guard let deltaSample = IOReportCreateSamplesDelta(prevSample, currentSample, nil) else {
+                previousAneSample = currentSample
+                lastANEUpdateTime = Date()
+                return 0
+            }
 
+            // Parse the delta sample
+            let deltaDict = deltaSample as NSDictionary
+
+            if let channels = deltaDict["IOReportChannels"] as? [[String: Any]] {
                 for channel in channels {
-                    if let legendChannel = channel["LegendChannel"] as? NSArray,
-                       legendChannel.count > 2,
-                       let channelName = legendChannel[2] as? String,
-                       channelName.starts(with: "ANE") {
-
-                        // Get energy value from channel
-                        if let value = IOReportSimpleGetIntegerValue(channel as CFDictionary, 0) as? Int64, value > 0 {
-                            // Convert energy to watts (value is in nanojoules)
-                            let energyNanojoules = Double(value)
-                            let energyJoules = energyNanojoules / 1_000_000_000.0
-                            anePowerWatts = energyJoules / deltaTime
-                            break
-                        }
+                    // Check if this is an ANE channel
+                    guard let legendChannel = channel["LegendChannel"] as? NSArray,
+                          legendChannel.count > 2,
+                          let channelName = legendChannel[2] as? String,
+                          channelName.starts(with: "ANE") else {
+                        continue
                     }
+
+                    let channelDict = channel as CFDictionary
+
+                    // Use IOReportSimpleGetIntegerValue to get the energy delta
+                    let energyDelta = IOReportSimpleGetIntegerValue(channelDict, 0)
+
+                    if energyDelta == 0 {
+                        continue
+                    }
+
+                    // IOReport returns microwatts, convert to watts
+                    let powerWatts = Double(energyDelta) / 1000.0
+                    anePowerWatts += powerWatts
                 }
             }
         }
 
         // Store current sample for next iteration
-        previousAneSample = newSample
+        previousAneSample = currentSample
         lastANEUpdateTime = Date()
 
-        // Convert watts to percentage (0-100%) based on max power
-        let percentage = min((anePowerWatts / aneMaxPower) * 100.0, 100.0)
-        return percentage
+        return anePowerWatts
         #else
         return 0
         #endif
@@ -351,6 +367,6 @@ public extension ResourceMetrics {
     }
 
     var aneString: String {
-        String(format: "ANE: %.1f%%", aneUsage)
+        String(format: "ANE: %.2f W", anePower)
     }
 }
