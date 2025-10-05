@@ -222,9 +222,49 @@ public class ResourceMonitor: ObservableObject {
     }
 
     private func getANEUsage() -> Double {
-        // ANE usage is not directly accessible via public APIs
-        // Would need to monitor Core ML activity or use private frameworks
-        // Return 0 for now, but could estimate based on Vision framework activity
+        #if os(macOS)
+        // Try to get ANE power usage from IOKit
+        var iterator: io_iterator_t = 0
+        let result = IOServiceGetMatchingServices(kIOMainPortDefault,
+                                                 IOServiceMatching("AppleH11ANEInterface"),
+                                                 &iterator)
+
+        if result == KERN_SUCCESS {
+            var service: io_object_t = IOIteratorNext(iterator)
+            while service != 0 {
+                var properties: Unmanaged<CFMutableDictionary>?
+                let kr = IORegistryEntryCreateCFProperties(service,
+                                                          &properties,
+                                                          kCFAllocatorDefault,
+                                                          0)
+
+                if kr == KERN_SUCCESS, let props = properties?.takeRetainedValue() as? [String: Any] {
+                    // Look for power state or activity indicators
+                    if let powerState = props["PowerState"] as? Int {
+                        IOObjectRelease(service)
+                        IOObjectRelease(iterator)
+                        // Convert power state to percentage (0-100)
+                        return Double(powerState > 0 ? min(powerState * 25, 100) : 0)
+                    }
+
+                    // Alternative: check for performance statistics
+                    if let perfStats = props["PerformanceStatistics"] as? [String: Any] {
+                        if let utilization = perfStats["Utilization"] as? Double {
+                            IOObjectRelease(service)
+                            IOObjectRelease(iterator)
+                            return utilization
+                        }
+                    }
+                }
+
+                IOObjectRelease(service)
+                service = IOIteratorNext(iterator)
+            }
+            IOObjectRelease(iterator)
+        }
+        #endif
+
+        // Fallback: return 0 if not accessible
         return 0
     }
 }
