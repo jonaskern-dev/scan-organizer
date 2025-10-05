@@ -227,4 +227,4 @@ Copyright 2025 Jonas Kern
 
 ## Version
 
-Current version: 1.1.9
+Current version: 1.1.10
