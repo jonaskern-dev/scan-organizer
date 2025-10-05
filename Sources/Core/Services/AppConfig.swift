@@ -25,6 +25,13 @@ public class AppConfig: ObservableObject {
         case debugOCRService = "debugOCRService"
         case debugFileOrganizer = "debugFileOrganizer"
         case debugNotificationService = "debugNotificationService"
+
+        // Filename format settings
+        case filenameIncludeDate = "filenameIncludeDate"
+        case filenameDateFormat = "filenameDateFormat"
+        case filenamePartSeparator = "filenamePartSeparator"
+        case filenameInternalSeparator = "filenameInternalSeparator"
+        case filenameIncludeComponents = "filenameIncludeComponents"
     }
 
     // Published properties for UI binding
@@ -104,6 +111,37 @@ public class AppConfig: ObservableObject {
     @Published public var debugNotificationService: Bool {
         didSet {
             UserDefaults.standard.set(debugNotificationService, forKey: ConfigKey.debugNotificationService.rawValue)
+        }
+    }
+
+    // Filename format settings
+    @Published public var filenameIncludeDate: Bool {
+        didSet {
+            UserDefaults.standard.set(filenameIncludeDate, forKey: ConfigKey.filenameIncludeDate.rawValue)
+        }
+    }
+
+    @Published public var filenameDateFormat: String {
+        didSet {
+            UserDefaults.standard.set(filenameDateFormat, forKey: ConfigKey.filenameDateFormat.rawValue)
+        }
+    }
+
+    @Published public var filenamePartSeparator: String {
+        didSet {
+            UserDefaults.standard.set(filenamePartSeparator, forKey: ConfigKey.filenamePartSeparator.rawValue)
+        }
+    }
+
+    @Published public var filenameInternalSeparator: String {
+        didSet {
+            UserDefaults.standard.set(filenameInternalSeparator, forKey: ConfigKey.filenameInternalSeparator.rawValue)
+        }
+    }
+
+    @Published public var filenameIncludeComponents: Bool {
+        didSet {
+            UserDefaults.standard.set(filenameIncludeComponents, forKey: ConfigKey.filenameIncludeComponents.rawValue)
         }
     }
 
@@ -255,6 +293,13 @@ public class AppConfig: ObservableObject {
         self.debugOCRService = UserDefaults.standard.object(forKey: ConfigKey.debugOCRService.rawValue) as? Bool ?? false
         self.debugFileOrganizer = UserDefaults.standard.object(forKey: ConfigKey.debugFileOrganizer.rawValue) as? Bool ?? false
         self.debugNotificationService = UserDefaults.standard.object(forKey: ConfigKey.debugNotificationService.rawValue) as? Bool ?? false
+
+        // Load filename format settings
+        self.filenameIncludeDate = UserDefaults.standard.object(forKey: ConfigKey.filenameIncludeDate.rawValue) as? Bool ?? true
+        self.filenameDateFormat = UserDefaults.standard.string(forKey: ConfigKey.filenameDateFormat.rawValue) ?? "YYYY-MM-DD"
+        self.filenamePartSeparator = UserDefaults.standard.string(forKey: ConfigKey.filenamePartSeparator.rawValue) ?? "_"
+        self.filenameInternalSeparator = UserDefaults.standard.string(forKey: ConfigKey.filenameInternalSeparator.rawValue) ?? "-"
+        self.filenameIncludeComponents = UserDefaults.standard.object(forKey: ConfigKey.filenameIncludeComponents.rawValue) as? Bool ?? true
 
         // Fetch available models
         Task {
