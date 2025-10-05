@@ -241,36 +241,38 @@ public class ResourceMonitor: ObservableObject {
         #if os(macOS)
         // Use IOReport framework to get ANE power consumption
         // This is the same method used by powermetrics, macmon, and asitop
-        // ANE power indicates activity - we convert watts to percentage (0-100%)
-        // Max ANE power is ~8W, so we use that as 100%
 
-        guard let channels = IOReportCopyAllChannels(0, 0) as? [String: Any] else {
+        guard let channelsDict = IOReportCopyAllChannels(0, 0) else {
+            print("DEBUG: IOReportCopyAllChannels returned nil")
             return 0
         }
 
-        var anePower: Double = 0.0
+        // Convert to NSDictionary for easier iteration
+        let channels = channelsDict as NSDictionary
+        print("DEBUG: Got \(channels.count) IOReport channels")
 
-        // Iterate through all IOReport channels looking for ANE energy channels
-        for (_, channelData) in channels {
-            guard let channel = channelData as? [String: Any],
-                  let channelName = channel["IOReportChannelInfo"] as? [String: Any],
-                  let name = channelName["ChannelName"] as? String else {
-                continue
-            }
+        var foundANE = false
 
-            // Look for ANE channels (ANE0, ANE1, etc.)
-            if name.starts(with: "ANE") {
-                // ANE power is reported in energy units, we just check if > 0
-                // to indicate activity
-                if let unit = channelName["ChannelUnit"] as? String,
-                   unit.contains("energy") || unit.contains("power") {
-                    anePower = 100.0 // ANE is active
-                    break
-                }
+        // Iterate through all channels
+        for (key, value) in channels {
+            guard let keyStr = key as? String else { continue }
+
+            // Check if this is an ANE-related channel
+            if keyStr.contains("ANE") || keyStr.contains("ane") {
+                foundANE = true
+                print("DEBUG: Found ANE channel: \(keyStr)")
+                print("DEBUG: Channel data: \(value)")
+
+                // Return 100% to indicate ANE is present/active
+                return 100.0
             }
         }
 
-        return anePower
+        if !foundANE {
+            print("DEBUG: No ANE channels found in IOReport")
+        }
+
+        return 0
         #else
         return 0
         #endif
