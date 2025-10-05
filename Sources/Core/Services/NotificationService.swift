@@ -50,21 +50,24 @@ public class NotificationService {
     private func setupRemindersList() {
         #if os(macOS)
         Task {
-            // Check for existing "Scan Organizer" list
+            // Get app name from bundle (either "Scan Organizer" or "Scan Organizer (Dev)")
+            let appName = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "Scan Organizer"
+
+            // Check for existing list
             let calendars = eventStore.calendars(for: .reminder)
-            remindersList = calendars.first { $0.title == "Scan Organizer" }
+            remindersList = calendars.first { $0.title == appName }
 
             // Create list if it doesn't exist
             if remindersList == nil {
                 let newList = EKCalendar(for: .reminder, eventStore: eventStore)
-                newList.title = "Scan Organizer"
+                newList.title = appName
                 newList.source = eventStore.defaultCalendarForNewReminders()?.source
 
                 if newList.source != nil {
                     do {
                         try eventStore.saveCalendar(newList, commit: true)
                         remindersList = newList
-                        print("Created 'Scan Organizer' reminders list")
+                        print("Created '\(appName)' reminders list")
                     } catch {
                         print("Failed to create reminders list: \(error)")
                     }
@@ -179,7 +182,8 @@ public class NotificationService {
         #if os(macOS)
         // Create notification content
         let content = UNMutableNotificationContent()
-        content.title = "Scan Organizer"
+        let appName = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "Scan Organizer"
+        content.title = appName
 
         let fileName = document.processedPath?.lastPathComponent ?? document.originalPath.lastPathComponent
         content.subtitle = "PDF verarbeitet: \(fileName)"

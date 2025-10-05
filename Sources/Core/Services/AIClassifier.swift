@@ -218,67 +218,98 @@ public class AIClassifier {
     }
 
     internal func buildFileName(from components: AIComponents) -> String {
+        let config = AppConfig.shared
         var filenameParts: [String] = []
 
-        // 1. Date
-        if isValidDate(components.date) {
-            filenameParts.append(components.date)
-        } else {
-            filenameParts.append(getFileDate(fileName: ""))
+        // 1. Date (if enabled)
+        if config.filenameIncludeDate {
+            let dateStr: String
+            if isValidDate(components.date) {
+                dateStr = components.date
+            } else {
+                dateStr = getFileDate(fileName: "")
+            }
+
+            // Format date according to config
+            let formattedDate = formatDate(dateStr, format: config.filenameDateFormat)
+            filenameParts.append(formattedDate)
         }
 
         // 2. Title (cleaned and formatted)
         if !components.title.isEmpty &&
            !["keine angabe", "keine", "n/a", "unbekannt", "unknown"].contains(components.title.lowercased()) {
-            let titleClean = cleanForFilename(components.title, maxLength: 50)
+            let titleClean = cleanForFilename(components.title, maxLength: 50, separator: config.filenameInternalSeparator)
             if !titleClean.isEmpty {
                 filenameParts.append(titleClean)
             }
         }
 
-        // 3. Process components
-        var componentCount = 0
-        for comp in components.components.prefix(5) {
-            if componentCount >= 3 { break }
+        // 3. Process components (if enabled)
+        if config.filenameIncludeComponents {
+            var componentCount = 0
+            for comp in components.components.prefix(5) {
+                if componentCount >= 3 { break }
 
-            let confidence = comp["confidence"] as? Double ?? 0.5
-            if confidence < 0.6 { continue }
+                let confidence = comp["confidence"] as? Double ?? 0.5
+                if confidence < 0.6 { continue }
 
-            guard let value = comp["value"] else { continue }
-            let compStr = String(describing: value).trimmingCharacters(in: .whitespacesAndNewlines)
+                guard let value = comp["value"] else { continue }
+                let compStr = String(describing: value).trimmingCharacters(in: .whitespacesAndNewlines)
 
-            if compStr.isEmpty { continue }
+                if compStr.isEmpty { continue }
 
-            // Check for amounts
-            if let eurStr = extractAmount(from: compStr) {
-                filenameParts.append(eurStr)
-                componentCount += 1
-            } else {
-                // Regular component
-                let compClean = cleanForFilename(compStr, maxLength: 30)
-                if !compClean.isEmpty && compClean.count > 1 {
-                    filenameParts.append(compClean)
+                // Check for amounts
+                if let eurStr = extractAmount(from: compStr, separator: config.filenameInternalSeparator) {
+                    filenameParts.append(eurStr)
                     componentCount += 1
+                } else {
+                    // Regular component
+                    let compClean = cleanForFilename(compStr, maxLength: 30, separator: config.filenameInternalSeparator)
+                    if !compClean.isEmpty && compClean.count > 1 {
+                        filenameParts.append(compClean)
+                        componentCount += 1
+                    }
                 }
             }
         }
 
-        // Join filename parts
-        var filename = filenameParts.joined(separator: "_")
+        // Join filename parts with configured separator
+        var filename = filenameParts.joined(separator: config.filenamePartSeparator)
 
         // Replace German umlauts
         filename = replaceUmlauts(in: filename)
 
-        // Final cleanup
-        filename = filename.replacingOccurrences(of: "__", with: "_")
-        filename = filename.replacingOccurrences(of: "--", with: "-")
+        // Final cleanup with configured separators
+        let doublePart = config.filenamePartSeparator + config.filenamePartSeparator
+        let doubleInternal = config.filenameInternalSeparator + config.filenameInternalSeparator
+        filename = filename.replacingOccurrences(of: doublePart, with: config.filenamePartSeparator)
+        filename = filename.replacingOccurrences(of: doubleInternal, with: config.filenameInternalSeparator)
 
         return filename.isEmpty ? "document" : filename
     }
 
-    private func cleanForFilename(_ text: String, maxLength: Int) -> String {
+    private func formatDate(_ dateStr: String, format: String) -> String {
+        // Parse the date string (assumed to be in YYYY-MM-DD format)
+        let components = dateStr.split(separator: "-").map(String.init)
+        guard components.count == 3,
+              let year = Int(components[0]),
+              let month = Int(components[1]),
+              let day = Int(components[2]) else {
+            return dateStr
+        }
+
+        // Replace format placeholders
+        var result = format
+        result = result.replacingOccurrences(of: "YYYY", with: String(format: "%04d", year))
+        result = result.replacingOccurrences(of: "MM", with: String(format: "%02d", month))
+        result = result.replacingOccurrences(of: "DD", with: String(format: "%02d", day))
+
+        return result
+    }
+
+    private func cleanForFilename(_ text: String, maxLength: Int, separator: String = "-") -> String {
         // Remove special characters and normalize spaces
-        var cleaned = text.replacingOccurrences(of: #"\s+"#, with: "-", options: .regularExpression)
+        var cleaned = text.replacingOccurrences(of: #"\s+"#, with: separator, options: .regularExpression)
         cleaned = cleaned.replacingOccurrences(of: #"[^\w\säöüßÄÖÜ-]"#, with: "", options: .regularExpression)
 
         // Truncate to max length
@@ -289,7 +320,7 @@ public class AIClassifier {
         return cleaned
     }
 
-    private func extractAmount(from text: String) -> String? {
+    private func extractAmount(from text: String, separator: String = "-") -> String? {
         // Check for EUR amounts
         if text.uppercased().contains("EUR") || text.contains("€") {
             if let match = text.range(of: #"\d+[.,]?\d*"#, options: .regularExpression) {

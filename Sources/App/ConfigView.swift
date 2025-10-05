@@ -584,6 +584,104 @@ struct ConfigView: View {
                         .foregroundColor(.primary)
                 }
 
+                Divider()
+                    .padding(.vertical, 8)
+
+                // Filename Format Settings
+                Section {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Toggle("Include Date in Filename", isOn: $config.filenameIncludeDate)
+                            .help("Add document date at the beginning of filename")
+
+                        if config.filenameIncludeDate {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Date Format:")
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                                TextField("", text: $config.filenameDateFormat)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .help("Date format (e.g., YYYY-MM-DD, DD.MM.YYYY, YYYY/MM/DD)")
+                                Text("Examples: YYYY-MM-DD → 2025-10-05, DD.MM.YYYY → 05.10.2025")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.leading, 20)
+                        }
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Part Separator:")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                            TextField("", text: $config.filenamePartSeparator)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .frame(width: 60)
+                                .help("Separator between major parts (date, title, components)")
+                            Text("Character used between date, title, and components (default: _)")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Internal Separator:")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                            TextField("", text: $config.filenameInternalSeparator)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .frame(width: 60)
+                                .help("Separator within component parts")
+                            Text("Character used within components like EUR-123-45 (default: -)")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+
+                        Toggle("Include Components in Filename", isOn: $config.filenameIncludeComponents)
+                            .help("Add extracted components (amounts, IDs, etc.) to filename")
+                    }
+                    .padding(.vertical, 4)
+                } header: {
+                    Label("Filename Format", systemImage: "doc.text")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                }
+
+                Divider()
+                    .padding(.vertical, 8)
+
+                // Debug Settings
+                Section {
+                    Toggle("Enable Debug Mode", isOn: $config.debugEnabled)
+                        .help("Enable debug logging to console")
+
+                    if config.debugEnabled {
+                        Toggle("Resource Monitor", isOn: $config.debugResourceMonitor)
+                            .help("Show CPU, Memory, GPU, ANE debug logs")
+                            .padding(.leading, 20)
+
+                        Toggle("PDF Processor", isOn: $config.debugPDFProcessor)
+                            .help("Show PDF processing debug logs")
+                            .padding(.leading, 20)
+
+                        Toggle("AI Classifier", isOn: $config.debugAIClassifier)
+                            .help("Show AI classification debug logs")
+                            .padding(.leading, 20)
+
+                        Toggle("OCR Service", isOn: $config.debugOCRService)
+                            .help("Show OCR extraction debug logs")
+                            .padding(.leading, 20)
+
+                        Toggle("File Organizer", isOn: $config.debugFileOrganizer)
+                            .help("Show file organization debug logs")
+                            .padding(.leading, 20)
+
+                        Toggle("Notification Service", isOn: $config.debugNotificationService)
+                            .help("Show notification debug logs")
+                            .padding(.leading, 20)
+                    }
+                } header: {
+                    Label("Debug", systemImage: "ladybug")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                }
 
                 // Status Section
                 Section {

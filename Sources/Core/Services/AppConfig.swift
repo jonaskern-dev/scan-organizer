@@ -16,6 +16,22 @@ public class AppConfig: ObservableObject {
         case textPrompt = "textPrompt"
         case brewPath = "brewPath"
         case ollamaPath = "ollamaPath"
+
+        // Debug settings
+        case debugEnabled = "debugEnabled"
+        case debugResourceMonitor = "debugResourceMonitor"
+        case debugPDFProcessor = "debugPDFProcessor"
+        case debugAIClassifier = "debugAIClassifier"
+        case debugOCRService = "debugOCRService"
+        case debugFileOrganizer = "debugFileOrganizer"
+        case debugNotificationService = "debugNotificationService"
+
+        // Filename format settings
+        case filenameIncludeDate = "filenameIncludeDate"
+        case filenameDateFormat = "filenameDateFormat"
+        case filenamePartSeparator = "filenamePartSeparator"
+        case filenameInternalSeparator = "filenameInternalSeparator"
+        case filenameIncludeComponents = "filenameIncludeComponents"
     }
 
     // Published properties for UI binding
@@ -52,6 +68,80 @@ public class AppConfig: ObservableObject {
     @Published public var reminderDelaySeconds: Int {  // 40 seconds default
         didSet {
             UserDefaults.standard.set(reminderDelaySeconds, forKey: ConfigKey.reminderDelaySeconds.rawValue)
+        }
+    }
+
+    // Debug settings
+    @Published public var debugEnabled: Bool {
+        didSet {
+            UserDefaults.standard.set(debugEnabled, forKey: ConfigKey.debugEnabled.rawValue)
+        }
+    }
+
+    @Published public var debugResourceMonitor: Bool {
+        didSet {
+            UserDefaults.standard.set(debugResourceMonitor, forKey: ConfigKey.debugResourceMonitor.rawValue)
+        }
+    }
+
+    @Published public var debugPDFProcessor: Bool {
+        didSet {
+            UserDefaults.standard.set(debugPDFProcessor, forKey: ConfigKey.debugPDFProcessor.rawValue)
+        }
+    }
+
+    @Published public var debugAIClassifier: Bool {
+        didSet {
+            UserDefaults.standard.set(debugAIClassifier, forKey: ConfigKey.debugAIClassifier.rawValue)
+        }
+    }
+
+    @Published public var debugOCRService: Bool {
+        didSet {
+            UserDefaults.standard.set(debugOCRService, forKey: ConfigKey.debugOCRService.rawValue)
+        }
+    }
+
+    @Published public var debugFileOrganizer: Bool {
+        didSet {
+            UserDefaults.standard.set(debugFileOrganizer, forKey: ConfigKey.debugFileOrganizer.rawValue)
+        }
+    }
+
+    @Published public var debugNotificationService: Bool {
+        didSet {
+            UserDefaults.standard.set(debugNotificationService, forKey: ConfigKey.debugNotificationService.rawValue)
+        }
+    }
+
+    // Filename format settings
+    @Published public var filenameIncludeDate: Bool {
+        didSet {
+            UserDefaults.standard.set(filenameIncludeDate, forKey: ConfigKey.filenameIncludeDate.rawValue)
+        }
+    }
+
+    @Published public var filenameDateFormat: String {
+        didSet {
+            UserDefaults.standard.set(filenameDateFormat, forKey: ConfigKey.filenameDateFormat.rawValue)
+        }
+    }
+
+    @Published public var filenamePartSeparator: String {
+        didSet {
+            UserDefaults.standard.set(filenamePartSeparator, forKey: ConfigKey.filenamePartSeparator.rawValue)
+        }
+    }
+
+    @Published public var filenameInternalSeparator: String {
+        didSet {
+            UserDefaults.standard.set(filenameInternalSeparator, forKey: ConfigKey.filenameInternalSeparator.rawValue)
+        }
+    }
+
+    @Published public var filenameIncludeComponents: Bool {
+        didSet {
+            UserDefaults.standard.set(filenameIncludeComponents, forKey: ConfigKey.filenameIncludeComponents.rawValue)
         }
     }
 
@@ -194,6 +284,22 @@ public class AppConfig: ObservableObject {
         self.reminderDelaySeconds = UserDefaults.standard.object(forKey: ConfigKey.reminderDelaySeconds.rawValue) as? Int ?? 40  // 40 seconds default
         self.visionPrompt = UserDefaults.standard.string(forKey: ConfigKey.visionPrompt.rawValue) ?? Self.defaultVisionPrompt
         self.textPrompt = UserDefaults.standard.string(forKey: ConfigKey.textPrompt.rawValue) ?? Self.defaultTextPrompt
+
+        // Load debug settings (all disabled by default)
+        self.debugEnabled = UserDefaults.standard.object(forKey: ConfigKey.debugEnabled.rawValue) as? Bool ?? false
+        self.debugResourceMonitor = UserDefaults.standard.object(forKey: ConfigKey.debugResourceMonitor.rawValue) as? Bool ?? false
+        self.debugPDFProcessor = UserDefaults.standard.object(forKey: ConfigKey.debugPDFProcessor.rawValue) as? Bool ?? false
+        self.debugAIClassifier = UserDefaults.standard.object(forKey: ConfigKey.debugAIClassifier.rawValue) as? Bool ?? false
+        self.debugOCRService = UserDefaults.standard.object(forKey: ConfigKey.debugOCRService.rawValue) as? Bool ?? false
+        self.debugFileOrganizer = UserDefaults.standard.object(forKey: ConfigKey.debugFileOrganizer.rawValue) as? Bool ?? false
+        self.debugNotificationService = UserDefaults.standard.object(forKey: ConfigKey.debugNotificationService.rawValue) as? Bool ?? false
+
+        // Load filename format settings
+        self.filenameIncludeDate = UserDefaults.standard.object(forKey: ConfigKey.filenameIncludeDate.rawValue) as? Bool ?? true
+        self.filenameDateFormat = UserDefaults.standard.string(forKey: ConfigKey.filenameDateFormat.rawValue) ?? "YYYY-MM-DD"
+        self.filenamePartSeparator = UserDefaults.standard.string(forKey: ConfigKey.filenamePartSeparator.rawValue) ?? "_"
+        self.filenameInternalSeparator = UserDefaults.standard.string(forKey: ConfigKey.filenameInternalSeparator.rawValue) ?? "-"
+        self.filenameIncludeComponents = UserDefaults.standard.object(forKey: ConfigKey.filenameIncludeComponents.rawValue) as? Bool ?? true
 
         // Fetch available models
         Task {

@@ -115,7 +115,8 @@ struct ScanOrganizerApp: App {
     }
 
     var body: some Scene {
-        Window("Scan Organizer", id: "main") {
+        let appName = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "Scan Organizer"
+        Window(appName, id: "main") {
             ContentView()
                 .environmentObject(queue)
                 .frame(minWidth: 800, minHeight: 600)

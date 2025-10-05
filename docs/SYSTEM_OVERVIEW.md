@@ -90,7 +90,10 @@ graph TB
   - Evaluates component importance (confidence)
 
 ### 4. File Organization
-- **Filename Generation**: YYYY-MM-DD_Type_Title.pdf
+- **Filename Generation**: Fully customizable format (default: YYYY-MM-DD_Type_Title.pdf)
+  - Configurable date format (YYYY-MM-DD, DD.MM.YYYY, etc.)
+  - Customizable separators for parts and internal components
+  - Optional date and component inclusion
 - **Directory Structure**: ~/Documents/ScanOrganizer/Year/Type/
 - **Automatic Filing**: Moves and renames PDFs automatically
 
@@ -99,6 +102,13 @@ graph TB
 - **Active Highlighting**: Blue border for current file
 - **Processing Log**: Real-time log with AI prompts and responses
 - **Auto-scroll**: Log scrolls automatically to newest entry
+- **Resource Monitor**: Real-time system resource usage
+  - CPU (Total, E-cores, P-cores)
+  - Memory (Used/Total GB)
+  - GPU usage (%)
+  - ANE power consumption (Watts)
+- **Debug System**: Optional debug logging with category toggles
+- **Configuration UI**: Customizable settings for AI prompts, filename format, and debug output
 
 ## Key Components
 
@@ -109,17 +119,29 @@ graph TB
 - `AIClassifier`: Ollama AI integration (Vision + Text)
 - `LoggingAIClassifier`: Extended version with detailed logging
 - `FileOrganizer`: File organization and renaming
+- `ResourceMonitor`: System resource monitoring (CPU, Memory, GPU, ANE)
+- `DebugLogger`: Centralized debug logging with category-based filtering
 
 ### Queue System
-- `ProcessingQueue`: Queue management with continuous processing
+- `ProcessingQueue`: In-memory queue management with continuous processing
 - `QueueItem`: Observable object with status and progress
 - `DirectoryMonitor`: Monitors directory for new PDFs
+
+### Configuration & Storage
+- `AppConfig`: Singleton using UserDefaults for persistent settings
+  - AI model selection and prompts
+  - Filename format customization
+  - Debug logging configuration
+  - Notification preferences
+- `FirstRunSetup`: Initial setup wizard for Ollama and models
+- `NotificationService`: macOS notification and Reminders integration
 
 ### GUI Components
 - `ContentView`: Main split view with queue and details
 - `QueueListView`: List with drag & drop support
 - `ItemDetailView`: Shows processing details and log
 - `QueueItemRow`: Rows with status animation
+- `ResourceBarView`: System resource monitoring display
 
 ## Status Flow
 ```

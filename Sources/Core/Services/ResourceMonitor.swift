@@ -4,6 +4,28 @@ import Combine
 #if os(macOS)
 import IOKit
 import IOKit.ps
+
+// IOReport private framework for power metrics (used by powermetrics, macmon, asitop)
+@_silgen_name("IOReportCopyChannelsInGroup")
+func IOReportCopyChannelsInGroup(_: CFString?, _: CFString?, _: UInt64, _: UInt64, _: UInt64) -> CFDictionary?
+
+@_silgen_name("IOReportCreateSubscription")
+func IOReportCreateSubscription(_: UnsafeRawPointer?, _: CFMutableDictionary, _: UnsafeMutablePointer<CFMutableDictionary?>?, _: UInt64, _: CFTypeRef?) -> UnsafeRawPointer?
+
+@_silgen_name("IOReportCreateSamples")
+func IOReportCreateSamples(_: UnsafeRawPointer, _: CFMutableDictionary, _: CFTypeRef?) -> CFDictionary?
+
+@_silgen_name("IOReportCreateSamplesDelta")
+func IOReportCreateSamplesDelta(_: CFDictionary, _: CFDictionary, _: CFTypeRef?) -> CFDictionary?
+
+@_silgen_name("IOReportChannelGetChannelName")
+func IOReportChannelGetChannelName(_: CFDictionary) -> CFString?
+
+@_silgen_name("IOReportSimpleGetIntegerValue")
+func IOReportSimpleGetIntegerValue(_: CFDictionary, _: Int32) -> Int64
+
+@_silgen_name("IOReportChannelGetUnitLabel")
+func IOReportChannelGetUnitLabel(_: CFDictionary) -> CFString?
 #endif
 
 public struct ResourceMetrics {
@@ -13,7 +35,7 @@ public struct ResourceMetrics {
     public let memoryUsed: Double  // in GB
     public let memoryTotal: Double  // in GB
     public let gpuUsage: Double  // 0-100%
-    public let aneUsage: Double  // Apple Neural Engine 0-100%
+    public let anePower: Double  // Apple Neural Engine power in watts
     public let timestamp: Date
 }
 
@@ -25,17 +47,31 @@ public class ResourceMonitor: ObservableObject {
         memoryUsed: 0,
         memoryTotal: 0,
         gpuUsage: 0,
-        aneUsage: 0,
+        anePower: 0,
         timestamp: Date()
     )
 
     private var timer: Timer?
     private var previousCPUInfo: host_cpu_load_info?
 
-    public init() {}
+    #if os(macOS)
+    private var aneSubscription: UnsafeRawPointer?
+    private var previousAneSample: CFDictionary?
+    private var previousANEEnergy: Int64 = 0  // Store previous energy value for delta
+    private var lastANEUpdateTime: Date?
+    private let aneMaxPower: Double = 8.0 // ANE max power ~8W
+    #endif
+
+    public init() {
+        #if os(macOS)
+        setupANEMonitoring()
+        #endif
+    }
 
     public func startMonitoring(interval: TimeInterval = 1.0) {
         stopMonitoring()
+
+        DebugLogger.log("Starting resource monitoring with interval: \(interval)s", category: .resourceMonitor)
 
         // Initial update
         updateMetrics()
@@ -47,6 +83,7 @@ public class ResourceMonitor: ObservableObject {
     }
 
     public func stopMonitoring() {
+        DebugLogger.log("Stopping resource monitoring", category: .resourceMonitor)
         timer?.invalidate()
         timer = nil
     }
@@ -55,7 +92,9 @@ public class ResourceMonitor: ObservableObject {
         let cpu = getCPUUsage()
         let memory = getMemoryUsage()
         let gpu = getGPUUsage()
-        let ane = getANEUsage()
+        let anePower = getANEPower()
+
+        DebugLogger.debug("CPU: \(String(format: "%.1f", cpu.total))% (E: \(String(format: "%.1f", cpu.efficiency))%, P: \(String(format: "%.1f", cpu.performance))%), RAM: \(String(format: "%.1f", memory.used))/\(String(format: "%.1f", memory.total))GB, GPU: \(String(format: "%.1f", gpu))%, ANE: \(String(format: "%.2f", anePower))W", category: .resourceMonitor)
 
         DispatchQueue.main.async {
             self.metrics = ResourceMetrics(
@@ -65,7 +104,7 @@ public class ResourceMonitor: ObservableObject {
                 memoryUsed: memory.used,
                 memoryTotal: memory.total,
                 gpuUsage: gpu,
-                aneUsage: ane,
+                anePower: anePower,
                 timestamp: Date()
             )
         }
@@ -221,11 +260,102 @@ public class ResourceMonitor: ObservableObject {
         return 0
     }
 
-    private func getANEUsage() -> Double {
-        // ANE usage is not directly accessible via public APIs
-        // Would need to monitor Core ML activity or use private frameworks
-        // Return 0 for now, but could estimate based on Vision framework activity
+    #if os(macOS)
+    private func setupANEMonitoring() {
+        guard let channels = IOReportCopyChannelsInGroup("Energy Model" as CFString, nil, 0, 0, 0) else {
+            DebugLogger.warning("Failed to get IOReport channels for Energy Model", category: .resourceMonitor)
+            return
+        }
+
+        var channelsOut: CFMutableDictionary?
+        aneSubscription = IOReportCreateSubscription(nil, channels as! CFMutableDictionary, &channelsOut, 0, nil)
+
+        if aneSubscription != nil {
+            // Take initial sample
+            previousAneSample = IOReportCreateSamples(aneSubscription!, channels as! CFMutableDictionary, nil)
+            lastANEUpdateTime = Date()
+            DebugLogger.log("ANE monitoring initialized successfully", category: .resourceMonitor)
+        } else {
+            DebugLogger.warning("Failed to create IOReport subscription", category: .resourceMonitor)
+        }
+    }
+    #endif
+
+    private func getANEPower() -> Double {
+        #if os(macOS)
+        guard let subscription = aneSubscription else {
+            return 0
+        }
+
+        guard let channels = IOReportCopyChannelsInGroup("Energy Model" as CFString, nil, 0, 0, 0) else {
+            return 0
+        }
+
+        // Create current sample
+        guard let currentSample = IOReportCreateSamples(subscription, channels as! CFMutableDictionary, nil) else {
+            return 0
+        }
+
+        var anePowerWatts: Double = 0.0
+
+        // Need previous sample to calculate delta
+        if let prevSample = previousAneSample,
+           let lastTime = lastANEUpdateTime {
+
+            let deltaTime = Date().timeIntervalSince(lastTime)
+
+            guard deltaTime > 0 else {
+                previousAneSample = currentSample
+                lastANEUpdateTime = Date()
+                return 0
+            }
+
+            // Create delta sample - this automatically calculates energy differences
+            guard let deltaSample = IOReportCreateSamplesDelta(prevSample, currentSample, nil) else {
+                previousAneSample = currentSample
+                lastANEUpdateTime = Date()
+                return 0
+            }
+
+            // Parse the delta sample
+            let deltaDict = deltaSample as NSDictionary
+
+            if let channels = deltaDict["IOReportChannels"] as? [[String: Any]] {
+                for channel in channels {
+                    // Check if this is an ANE channel
+                    guard let legendChannel = channel["LegendChannel"] as? NSArray,
+                          legendChannel.count > 2,
+                          let channelName = legendChannel[2] as? String,
+                          channelName.starts(with: "ANE") else {
+                        continue
+                    }
+
+                    let channelDict = channel as CFDictionary
+
+                    // Use IOReportSimpleGetIntegerValue to get the energy delta
+                    let energyDelta = IOReportSimpleGetIntegerValue(channelDict, 0)
+
+                    if energyDelta == 0 {
+                        continue
+                    }
+
+                    // IOReport returns microwatts, convert to watts
+                    let powerWatts = Double(energyDelta) / 1000.0
+                    anePowerWatts += powerWatts
+
+                    DebugLogger.debug("ANE \(channelName): \(energyDelta) µW = \(String(format: "%.2f", powerWatts)) W", category: .resourceMonitor)
+                }
+            }
+        }
+
+        // Store current sample for next iteration
+        previousAneSample = currentSample
+        lastANEUpdateTime = Date()
+
+        return anePowerWatts
+        #else
         return 0
+        #endif
     }
 }
 
@@ -248,6 +378,6 @@ public extension ResourceMetrics {
     }
 
     var aneString: String {
-        String(format: "ANE: %.1f%%", aneUsage)
+        String(format: "ANE: %.2f W", anePower)
     }
 }
