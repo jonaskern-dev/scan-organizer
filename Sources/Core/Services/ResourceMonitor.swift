@@ -261,13 +261,19 @@ public class ResourceMonitor: ObservableObject {
 
         print("DEBUG: Found \(reportChannels.count) report channels")
 
+        // Print first 30 channel names to see what we have
+        for (index, channel) in reportChannels.prefix(30).enumerated() {
+            if let channelName = channel["ChannelName"] as? String {
+                print("DEBUG: [\(index)] \(channelName)")
+            }
+        }
+
         for channel in reportChannels {
             if let channelName = channel["ChannelName"] as? String {
-                print("DEBUG: Channel: \(channelName)")
-
                 // Check for ANE channels (ANE0, ANE1, etc.)
                 if channelName.starts(with: "ANE") {
                     print("DEBUG: ✓ Found ANE channel: \(channelName)")
+                    print("DEBUG: Channel data: \(channel)")
 
                     // Check if there's any energy value
                     if let residencies = channel["Residencies"] as? [[String: Any]], !residencies.isEmpty {
