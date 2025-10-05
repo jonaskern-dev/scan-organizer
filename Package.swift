@@ -27,7 +27,10 @@ let package = Package(
         .target(
             name: "ScanOrganizerCore",
             dependencies: [],
-            path: "Sources/Core"
+            path: "Sources/Core",
+            linkerSettings: [
+                .linkedLibrary("IOReport", .when(platforms: [.macOS]))
+            ]
         ),
 
         // GUI App executable
